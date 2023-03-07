@@ -1,0 +1,40 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+  - development
+
+parameters:
+  - name: environment
+    displayName: Which machine you want to deploy?
+    type: string
+    default: 'SFORDS-144'
+    values:
+      - SFORDS-142
+      - SFORDS-144
+
+variables:
+  ${{ if eq(parameters['environment'], 'SFORDS-142') }}:
+    k8sServiceEndpoint: 'KubernetesService-SFORDS-142'
+    AGENT: 'SFORDS-142'
+  ${{ if eq(parameters['environment'], 'SFORDS-144') }}:
+    k8sServiceEndpoint: 'KubernetesService-SFORDS-144'
+    AGENT: 'SFORDS-144'
+
+pool:
+  name: BlueHydrogen
+  demands:
+    - Agent.Name -equals $(AGENT)
+
+steps:
+- task: Kubernetes@1
+  inputs:
+    connectionType: 'Kubernetes Service Connection'
+    kubernetesServiceEndpoint: ${{variables.k8sServiceEndpoint}}
+    command: 'apply'
+    useConfigurationFile: true
+    configuration: 'kubernetes/deployment.yaml'
+    secretType: 'dockerRegistry'
+    containerRegistryType: 'Azure Container Registry'
